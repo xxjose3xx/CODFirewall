@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class ServerCore {
 
@@ -40,26 +41,27 @@ public class ServerCore {
 
   public static void addIp(String ip) {
     ips.add(ip);
-    updateFirewallRule();
+    updateFirewallRule(false);
   }
 
   public static void removeIp(String ip) {
     ips.remove(ip);
-    updateFirewallRule();
+    updateFirewallRule(ips.isEmpty());
   }
 
   public static void shutdown() {
+    updateFirewallRule(true);
     keepActive = false;
   }
 
-  private static void updateFirewallRule() {
+  private static void updateFirewallRule(boolean deleteOnly) {
     try {
-      StringBuilder command = new StringBuilder(
-          "netsh advfirewall firewall delete rule name=@cod & netsh advfirewall firewall add rule name=@cod dir=in action=block remoteip=1.1.1.1");
-      for (String ip : ServerCore.ips) {
-        command.append(',').append(ip);
+      String command = "netsh advfirewall firewall delete rule name=@cod ";
+      if (!deleteOnly) {
+        command += "& netsh advfirewall firewall add rule name=@cod dir=in action=block remoteip=";
+        command += ips.stream().collect(Collectors.joining(","));
       }
-      Runtime.getRuntime().exec(command.toString());
+      Runtime.getRuntime().exec(command);
       LOGGER.log(Level.INFO, "> Command executed: {0}", command);
     } catch (IOException e) {
       LOGGER.log(Level.WARNING, "ServerCore updateFirewallRule exception", e);

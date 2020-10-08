@@ -45,7 +45,6 @@ public class ServerThread extends Thread {
 
   @Override
   public void run() {
-
     try (
         BufferedReader in =
             new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
@@ -100,7 +99,18 @@ public class ServerThread extends Thread {
 
   public void get(OutputStream outByte, String resource) throws IOException {
 
-    resource = (resource.equals("/") ? "/index.html" : resource).substring(1);
+    switch (resource) {
+      case "/exit":
+        shutdownPage(outByte);
+        ServerCore.shutdown();
+        return;
+      case "/":
+        resource = "index.html";
+        break;
+      default:
+        resource = resource.substring(1);
+    }
+
     InputStream file = getClass().getClassLoader().getResourceAsStream(resource);
 
     if (null != file) {
@@ -172,10 +182,21 @@ public class ServerThread extends Thread {
     outByte.write(SERVER_INFO);
     outByte.write(CONNECTION_CLOSE);
     outByte.write(String.format(CONTENT_TYPE, ContentType.HTML).getBytes());
-    outByte.write(String.format(CONTENT_LENGTH, 65).getBytes());
+    outByte.write(String.format(CONTENT_LENGTH, 56).getBytes());
     outByte.write(LINE_FEED);
     outByte.write("<title>Error: 405</title>".getBytes());
     outByte.write("<p>405 Method Not Allowed</p>".getBytes());
+  }
+
+  private void shutdownPage(OutputStream outByte) throws IOException {
+    outByte.write(STATUS_200);
+    outByte.write(SERVER_INFO);
+    outByte.write(CONNECTION_CLOSE);
+    outByte.write(String.format(CONTENT_TYPE, ContentType.HTML).getBytes());
+    outByte.write(String.format(CONTENT_LENGTH, 56).getBytes());
+    outByte.write(LINE_FEED);
+    outByte.write("<title>Shut down</title>".getBytes());
+    outByte.write("<p>Server is shutting down</p>".getBytes());
   }
 
   private boolean validateIp(String ip) {
