@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Player Kicker</title>
+	<meta charset="utf-8">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script type="text/javascript">
+
+		function validar(ip) {
+			ip = ip.split(".");
+			
+			if(ip.length == 4 && ip[0] < 256 && ip[1] < 256 && ip[2] < 256 && ip[3] < 256)
+				return true;
+			else
+				return false;
+		}
+	
+		function añadir(jugador) {
+			var ip = document.getElementById(jugador);
+
+			if(validar(ip.value)) {
+				$.post("",{add:ip.value}, function() {
+					if(data == "Y") ip.style.background = "red";
+				});
+			}
+		}
+
+		function eliminar(jugador) {
+			var ip = document.getElementById(jugador).value;
+
+			if(validar(ip)) {
+				$.post("",{del:ip}, function(data) {
+					if(data == "Y") ip.style.background = "white";
+				});
+			}
+		}
+	</script>
+</head>
+<body>
+	<div>
+		<input type="text" placeholder="jugador 1">
+		<input type="text" id="ip1" placeholder="xxx.xxx.xxx.xxx">
+		<input type="button" value="añadir" onclick="añadir('ip1')">
+		<input type="button" value="eliminar" onclick="eliminar('ip1')">
+	</div>
+	<div>
+		<input type="text" placeholder="jugador 2">
+		<input type="text" id="ip2" placeholder="xxx.xxx.xxx.xxx">
+		<input type="button" value="añadir" onclick="añadir('ip2')">
+		<input type="button" value="eliminar" onclick="eliminar('ip2')">
+	</div>
+	<div>
+		<input type="text" placeholder="jugador 3">
+		<input type="text" id="ip3" placeholder="xxx.xxx.xxx.xxx">
+		<input type="button" value="añadir" onclick="añadir('ip3')">
+		<input type="button" value="eliminar" onclick="eliminar('ip3')">
+	</div>
+</body>
+</html>
