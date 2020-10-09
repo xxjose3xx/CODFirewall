@@ -56,13 +56,16 @@ public class ServerCore {
 
   private static void updateFirewallRule(boolean deleteOnly) {
     try {
-      String command = "netsh advfirewall firewall delete rule name=@cod ";
-      if (!deleteOnly) {
-        command += "& netsh advfirewall firewall add rule name=@cod dir=in action=block remoteip=";
-        command += ips.stream().collect(Collectors.joining(","));
-      }
+      String command = "netsh advfirewall firewall delete rule name=@cod";
       Runtime.getRuntime().exec(command);
       LOGGER.log(Level.INFO, "> Command executed: {0}", command);
+
+      if (!deleteOnly) {
+        command = "netsh advfirewall firewall add rule name=@cod dir=in action=block remoteip=";
+        command += ips.stream().collect(Collectors.joining(","));
+        Runtime.getRuntime().exec(command);
+        LOGGER.log(Level.INFO, "> Command executed: {0}", command);
+      }
     } catch (IOException e) {
       LOGGER.log(Level.WARNING, "ServerCore updateFirewallRule exception", e);
     }
