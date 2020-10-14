@@ -1,1 +1,24 @@
-bin/
+## Java
+##########################
+
+*.class
+*.jar
+
+
+##########################
+## Maven
+##########################
+
+target/
+
+
+##########################
+## Eclipse
+##########################
+
+.metadata/
+.settings/
+.sonarlint/
+.classpath
+.factorypath
+.project
