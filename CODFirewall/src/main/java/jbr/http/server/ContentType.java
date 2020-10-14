@@ -1,4 +1,4 @@
-package http.server;
+package jbr.http.server;
 
 public enum ContentType {
   
