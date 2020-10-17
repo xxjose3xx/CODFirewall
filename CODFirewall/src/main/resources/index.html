@@ -1,59 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 	<title>Player Kicker</title>
 	<meta charset="utf-8">
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+	<link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
+	<link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/manifest.json">
+	<meta name="msapplication-TileColor" content="#ffffff">
+	<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+	<meta name="theme-color" content="#ffffff">
 	<script type="text/javascript">
-
-		function validar(ip) {
-			ip = ip.split(".");
 			
-			if(ip.length == 4 && ip[0] < 256 && ip[1] < 256 && ip[2] < 256 && ip[3] < 256)
-				return true;
-			else
-				return false;
-		}
-	
-		function añadir(jugador) {
-			var ip = document.getElementById(jugador);
-
-			if(validar(ip.value)) {
-				$.post("",{add:ip.value}, function() {
-					if(data == "Y") ip.style.background = "red";
-				});
+		var permitidas = [];
+		var bloqueadas = [];
+		
+		function añadir() {
+			var ipInput = document.getElementById("ip");
+			if(validar(ipInput.value)) {
+				permitidas.push(ipInput.value);
+				ipInput.value = "";
+				refrescarListados();
 			}
 		}
-
-		function eliminar(jugador) {
-			var ip = document.getElementById(jugador).value;
-
-			if(validar(ip)) {
-				$.post("",{del:ip}, function(data) {
-					if(data == "Y") ip.style.background = "white";
+		
+		function validar(ip) {
+			ip = ip.split(".");			
+			return (ip.length == 4 && ip[0] < 256 && ip[1] < 256 && ip[2] < 256 && ip[3] < 256);
+		}
+		
+		function bloquear(elemento) {
+			
+			var ip = elemento.parentElement.getAttribute("ip");
+			
+			fetch("/block", {method:'POST',body:JSON.stringify({ip:ip})})
+				.then(res => res.json())
+				.then(json => {
+					if(json.success) {
+						bloqueadas = json.ips;
+						permitidas.pop(ip);
+						refrescarListados();
+					}
 				});
+		}
+		
+		function permitir(elemento) {
+			
+			var ip = elemento.parentElement.getAttribute("ip");
+			coso = elemento;
+			
+			fetch("/allow", {method:'POST',body:JSON.stringify({ip:ip})})
+				.then(res => res.json())
+				.then(json => {
+					if(json.success) {
+						bloqueadas = json.ips;
+						permitidas.push(ip);
+						refrescarListados();
+					}
+				});
+		}
+
+		function permitirTodas() {
+			fetch("/removeRules", {method:'PUT'})
+				.then(res => res.json())
+				.then(json => {
+					if(json.success) {
+						permitidas = permitidas.concat(bloqueadas);
+						bloqueadas = json.ips;
+						refrescarListados();
+					}
+				});
+		}
+		
+		function refrescarListados() {
+			
+			var permitidasDiv = document.getElementById("permitidas");
+			var bloqueadasDiv = document.getElementById("bloqueadas");
+			var permitidasHTML = "";
+			var bloqueadasHTML = "";
+			
+			for(var ip of permitidasDiv.getElementsByClassName("ip")) {
+				ip.remove();
 			}
+			
+			for(var ip of bloqueadasDiv.getElementsByClassName("ip")) {
+				ip.remove();
+			}
+			
+			for(var ip of permitidas) {
+				permitidasHTML += `<div class="ip" ip=${ip}>
+					<input type="text" placeholder="jugador">${ip}
+					<input type="button" value="bloquear" onclick="bloquear(this)">
+				</div>`;
+			}
+			
+			for(var ip of bloqueadas) {
+				bloqueadasHTML += `<div class="ip" ip=${ip}>
+					<input type="text" placeholder="jugador">${ip}
+					<input type="button" value="permitir" onclick="permitir(this)">
+				</div>`;
+			}
+			
+			permitidasDiv.innerHTML += permitidasHTML;
+			bloqueadasDiv.innerHTML += bloqueadasHTML;
 		}
 	</script>
 </head>
 <body>
 	<div>
-		<input type="text" placeholder="jugador 1">
-		<input type="text" id="ip1" placeholder="xxx.xxx.xxx.xxx">
-		<input type="button" value="añadir" onclick="añadir('ip1')">
-		<input type="button" value="eliminar" onclick="eliminar('ip1')">
+		<input type="text" id="ip" placeholder="xxx.xxx.xxx.xxx">
+		<input type="button" value="añdir" onclick="añadir()">
 	</div>
-	<div>
-		<input type="text" placeholder="jugador 2">
-		<input type="text" id="ip2" placeholder="xxx.xxx.xxx.xxx">
-		<input type="button" value="añadir" onclick="añadir('ip2')">
-		<input type="button" value="eliminar" onclick="eliminar('ip2')">
+	<div id="permitidas">
+		<p><strong>Permitidas</strong></p>
 	</div>
-	<div>
-		<input type="text" placeholder="jugador 3">
-		<input type="text" id="ip3" placeholder="xxx.xxx.xxx.xxx">
-		<input type="button" value="añadir" onclick="añadir('ip3')">
-		<input type="button" value="eliminar" onclick="eliminar('ip3')">
-	</div>
+	<div id="bloqueadas">
+		<p><strong>Bloqueadas</strong></p>
+	</div>	
+	<input type="button" value="Permitir todas" onclick="permitirTodas()">
 </body>
 </html>

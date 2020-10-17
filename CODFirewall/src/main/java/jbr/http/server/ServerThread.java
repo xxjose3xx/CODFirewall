@@ -8,6 +8,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONObject;
+import jbr.firewall.service.FirewallService;
 
 public class ServerThread extends Thread {
 
@@ -39,8 +41,11 @@ public class ServerThread extends Thread {
 
   private Socket socketClient;
 
+  private FirewallService firewallService;
+
   public ServerThread(Socket socketClient) {
     this.socketClient = socketClient;
+    this.firewallService = FirewallService.getInstance();
   }
 
   @Override
@@ -59,7 +64,9 @@ public class ServerThread extends Thread {
       } else if (params[0].equals("GET")) {
         get(outByte, params[1]);
       } else if (params[0].equals("POST")) {
-        post(outByte, in);
+        post(outByte, in, params[1]);
+      } else if (params[0].equals("PUT")) {
+        put(outByte, params[1]);
       } else {
         error405(outByte);
       }
@@ -100,17 +107,18 @@ public class ServerThread extends Thread {
   public void get(OutputStream outByte, String resource) throws IOException {
 
     switch (resource) {
-      case "/exit":
-        shutdownPage(outByte);
-        ServerCore.shutdown();
-        return;
       case "/":
         resource = "index.html";
         break;
+      case "/exit":
+        firewallService.removeRules();
+        shutdownPage(outByte);
+        ServerCore.shutdown();
+        return;
       default:
         resource = resource.substring(1);
     }
-
+    
     InputStream file = getClass().getClassLoader().getResourceAsStream(resource);
 
     if (null != file) {
@@ -128,31 +136,51 @@ public class ServerThread extends Thread {
     }
   }
 
-  public void post(OutputStream outByte, BufferedReader in) throws IOException {
+  public void put(OutputStream outByte, String resource) throws IOException {
+
+    if ("/removeRules".equals(resource)) {
+      firewallService.removeRules();
+      ok200(outByte, true);
+    } else {
+      error400(outByte);
+    }
+  }
+
+  public void post(OutputStream outByte, BufferedReader in, String resource) throws IOException {
 
     while (!in.readLine().isEmpty());
     char[] c = new char[100];
+    JSONObject jsonObject = new JSONObject(new String(c, 0, in.read(c)));
+    boolean status;
 
-    String aux = new String(c, 0, in.read(c));
-    String[] body = aux.split("=");
-    String status = "Y";
-
-    if (body.length == 2) {
-      if (body[0].equals("add") && !ServerCore.containsIp(body[1]) && validateIp(body[1])) {
-        ServerCore.addIp(body[1]);
-      } else if (body[0].equals("del") && ServerCore.containsIp(body[1])) {
-        ServerCore.removeIp(body[1]);
-      } else {
-        status = "N";
-      }
-      outByte.write(STATUS_200);
-      outByte.write(SERVER_INFO);
-      outByte.write(CONNECTION_CLOSE);
-      outByte.write(String.format(CONTENT_TYPE, ContentType.HTML).getBytes());
-      outByte.write(String.format(CONTENT_LENGTH, 2).getBytes());
-      outByte.write(LINE_FEED);
-      outByte.write(status.getBytes());
+    switch (resource) {
+      case "/block":
+        status = firewallService.addIp(jsonObject.getString("ip"));
+        break;
+      case "/allow":
+        status = firewallService.removeIp(jsonObject.getString("ip"));
+        break;
+      default:
+        status = false;
     }
+
+    ok200(outByte, status);
+  }
+
+  private void ok200(OutputStream outByte, boolean status) throws IOException {
+
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put("success", status);
+    jsonObject.put("ips", firewallService.ipsToArray());
+    String response = jsonObject.toString();
+
+    outByte.write(STATUS_200);
+    outByte.write(SERVER_INFO);
+    outByte.write(CONNECTION_CLOSE);
+    outByte.write(String.format(CONTENT_TYPE, ContentType.JSON).getBytes());
+    outByte.write(String.format(CONTENT_LENGTH, response.length()).getBytes());
+    outByte.write(LINE_FEED);
+    outByte.write(response.getBytes());
   }
 
   private void error400(OutputStream outByte) throws IOException {
@@ -197,11 +225,5 @@ public class ServerThread extends Thread {
     outByte.write(LINE_FEED);
     outByte.write("<title>Shut down</title>".getBytes());
     outByte.write("<p>Server is shutting down</p>".getBytes());
-  }
-
-  private boolean validateIp(String ip) {
-    String[] aux = ip.split("\\.");
-    return aux.length == 4 && Integer.parseInt(aux[0]) < 256 && Integer.parseInt(aux[1]) < 256
-        && Integer.parseInt(aux[2]) < 256 && Integer.parseInt(aux[3]) < 256;
   }
 }
