@@ -30,7 +30,7 @@
 			if(validar(ipInput.value)) {
 				permitidas.push(ipInput.value);
 				ipInput.value = "";
-				refrescarPermitidas();
+				refrescarListados();
 			}
 		}
 		
@@ -47,10 +47,9 @@
 				.then(res => res.json())
 				.then(json => {
 					if(json.success) {
-						permitidas.pop(ip);
 						bloqueadas = json.ips;
-						refrescarPermitidas();
-						refrescarBloqueadas();
+						permitidas.pop(ip);
+						refrescarListados();
 					}
 				});
 		}
@@ -61,63 +60,59 @@
 			coso = elemento;
 			
 			fetch("/allow", {method:'POST',body:JSON.stringify({ip:ip})})
-			.then(res => res.json())
-			.then(json => {
-				if(json.success) {
-					permitidas.push(ip);
-					bloqueadas = json.ips;
-					refrescarPermitidas();
-					refrescarBloqueadas();
-				}
-			});
+				.then(res => res.json())
+				.then(json => {
+					if(json.success) {
+						bloqueadas = json.ips;
+						permitidas.push(ip);
+						refrescarListados();
+					}
+				});
 		}
 
 		function permitirTodas() {
-			fetch("/removeRules", {method:'PUT'});
-			permitidas = permitidas.concat(bloqueadas);
-			bloqueadas = [];
-			refrescarPermitidas();
-			refrescarBloqueadas();
+			fetch("/removeRules", {method:'PUT'})
+				.then(res => res.json())
+				.then(json => {
+					if(json.success) {
+						permitidas = permitidas.concat(bloqueadas);
+						bloqueadas = json.ips;
+						refrescarListados();
+					}
+				});
 		}
 		
-		function refrescarPermitidas() {
+		function refrescarListados() {
 			
 			var permitidasDiv = document.getElementById("permitidas");
+			var bloqueadasDiv = document.getElementById("bloqueadas");
+			var permitidasHTML = "";
+			var bloqueadasHTML = "";
 			
 			for(var ip of permitidasDiv.getElementsByClassName("ip")) {
 				ip.remove();
 			}
 			
-			var html = "";
+			for(var ip of bloqueadasDiv.getElementsByClassName("ip")) {
+				ip.remove();
+			}
 			
 			for(var ip of permitidas) {
-				html += `<div class="ip" ip=${ip}>
+				permitidasHTML += `<div class="ip" ip=${ip}>
 					<input type="text" placeholder="jugador">${ip}
 					<input type="button" value="bloquear" onclick="bloquear(this)">
 				</div>`;
 			}
 			
-			permitidasDiv.innerHTML += html;
-		}
-		
-		function refrescarBloqueadas() {
-			
-			var bloqueadasDiv = document.getElementById("bloqueadas");
-			
-			for(var ip of bloqueadasDiv.getElementsByClassName("ip")) {
-				ip.remove();
-			}
-			
-			var html = "";
-			
 			for(var ip of bloqueadas) {
-				html += `<div class="ip" ip=${ip}>
+				bloqueadasHTML += `<div class="ip" ip=${ip}>
 					<input type="text" placeholder="jugador">${ip}
 					<input type="button" value="permitir" onclick="permitir(this)">
 				</div>`;
 			}
 			
-			bloqueadasDiv.innerHTML += html;
+			permitidasDiv.innerHTML += permitidasHTML;
+			bloqueadasDiv.innerHTML += bloqueadasHTML;
 		}
 	</script>
 </head>
