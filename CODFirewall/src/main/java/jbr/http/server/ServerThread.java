@@ -118,7 +118,7 @@ public class ServerThread extends Thread {
       default:
         resource = resource.substring(1);
     }
-    System.out.println("resource: " + resource);
+    
     InputStream file = getClass().getClassLoader().getResourceAsStream(resource);
 
     if (null != file) {
@@ -132,7 +132,6 @@ public class ServerThread extends Thread {
       outByte.write(LINE_FEED);
       outByte.write(fileContent, 0, fileLength);
     } else {
-      System.out.print("resource not found: " + resource);
       error404(outByte);
     }
   }
