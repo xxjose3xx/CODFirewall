@@ -57,6 +57,7 @@ public class FirewallService {
   }
 
   public void removeRules() {
+	ips.clear();
     updateRules(true);
   }
 
