@@ -21,16 +21,16 @@
 	<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
 	<meta name="theme-color" content="#ffffff">
 	<script type="text/javascript">
-			
-		var permitidas = [];
-		var bloqueadas = [];
-		
 		function añadir() {
 			var ipInput = document.getElementById("ip");
 			if(validar(ipInput.value)) {
-				permitidas.push(ipInput.value);
+				var jugadoresDiv = document.getElementById("jugadores");
+				jugadoresDiv.innerHTML += `<div class="ip" ip=${ipInput.value}>
+						${ipInput.value} - (<span contenteditable="true">  </span>)
+						<input type="button" class="permitir" value="permitir" onclick="permitir(this)" disabled>
+						<input type="button" class="bloquear" value="bloquear" onclick="bloquear(this)">
+					</div>`;
 				ipInput.value = "";
-				refrescarListados();
 			}
 		}
 		
@@ -40,75 +40,29 @@
 		}
 		
 		function bloquear(elemento) {
-			
 			var ip = elemento.parentElement.getAttribute("ip");
-			
-			fetch("/block", {method:'POST',body:JSON.stringify({ip:ip})})
-				.then(res => res.json())
-				.then(json => {
-					if(json.success) {
-						bloqueadas = json.ips;
-						permitidas = permitidas.filter(elemento => elemento !== ip);
-						refrescarListados();
-					}
-				});
+			elemento.parentElement.getElementsByClassName("permitir")[0].disabled = false;
+			elemento.parentElement.getElementsByClassName("bloquear")[0].disabled = true;
+			fetch("/block", {method:'POST',body:JSON.stringify({ip:ip})});
 		}
 		
-		function permitir(elemento) {
-			
+		function permitir(elemento) {			
 			var ip = elemento.parentElement.getAttribute("ip");
-			
-			fetch("/allow", {method:'POST',body:JSON.stringify({ip:ip})})
-				.then(res => res.json())
-				.then(json => {
-					if(json.success) {
-						bloqueadas = json.ips;
-						permitidas.push(ip);
-						refrescarListados();
-					}
-				});
-		}
-
-		function permitirTodas() {
-			fetch("/removeRules", {method:'PUT'})
-				.then(res => res.json())
-				.then(json => {
-					if(json.success) {
-						permitidas = permitidas.concat(bloqueadas);
-						bloqueadas = json.ips;
-						refrescarListados();
-					}
-				});
+			elemento.parentElement.getElementsByClassName("permitir")[0].disabled = true;
+			elemento.parentElement.getElementsByClassName("bloquear")[0].disabled = false;
+			fetch("/allow", {method:'POST',body:JSON.stringify({ip:ip})});
 		}
 		
-		function refrescarListados() {
-			
-			var permitidasDiv = document.getElementById("permitidas");
-			var bloqueadasDiv = document.getElementById("bloqueadas");
+		function limpiar() {
 			var ips = document.getElementsByClassName("ip");
-			var permitidasHTML = "";
-			var bloqueadasHTML = "";
-			
 			for(var i = ips.length - 1; i >= 0; i--) {
 				ips[i].remove();
 			}
-			
-			for(var ip of permitidas) {
-				permitidasHTML += `<div class="ip" ip=${ip}>
-					<input type="text" placeholder="jugador">${ip}
-					<input type="button" value="bloquear" onclick="bloquear(this)">
-				</div>`;
-			}
-			
-			for(var ip of bloqueadas) {
-				bloqueadasHTML += `<div class="ip" ip=${ip}>
-					<input type="text" placeholder="jugador">${ip}
-					<input type="button" value="permitir" onclick="permitir(this)">
-				</div>`;
-			}
-			
-			permitidasDiv.innerHTML += permitidasHTML;
-			bloqueadasDiv.innerHTML += bloqueadasHTML;
+			fetch("/removeRules", {method:'PUT'});
+		}
+		
+		function apagar() {
+			window.location.href = 'http://' + window.location.host + '/exit';
 		}
 	</script>
 </head>
@@ -117,12 +71,10 @@
 		<input type="text" id="ip" placeholder="xxx.xxx.xxx.xxx">
 		<input type="button" value="añdir" onclick="añadir()">
 	</div>
-	<div id="permitidas">
-		<p><strong>Permitidas</strong></p>
+	<div id="jugadores">
+		<p><strong>Jugadores</strong></p>
 	</div>
-	<div id="bloqueadas">
-		<p><strong>Bloqueadas</strong></p>
-	</div>	
-	<input type="button" value="Permitir todas" onclick="permitirTodas()">
+	<input type="button" value="Limpiar" onclick="limpiar()">
+	<input type="button" value="Apagar" onclick="apagar()">
 </body>
 </html>
